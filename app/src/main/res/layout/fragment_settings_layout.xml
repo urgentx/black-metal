@@ -13,16 +13,52 @@
         android:id="@+id/switch1"
         android:layout_gravity="center_vertical"
         android:checked="true"
+
+        android:layout_marginTop="92dp"
         android:layout_alignParentTop="true"
-        android:layout_centerHorizontal="true"
-        android:layout_marginTop="69dp" />
+        android:layout_centerHorizontal="true" />
 
     <SeekBar
         android:layout_width="300dp"
         android:layout_height="wrap_content"
-        android:id="@+id/seekBar"
+        android:id="@+id/blackSeekBar"
+        android:layout_above="@+id/textView2"
+        android:layout_centerHorizontal="true"
+        android:layout_marginBottom="40dp"
+        android:progress="75"/>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="Granularity"
+        android:id="@+id/textView"
+        android:layout_marginBottom="52dp"
+        android:layout_alignBottom="@+id/blackSeekBar"
+        android:layout_alignLeft="@+id/switch1"
+        android:layout_alignStart="@+id/switch1" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="Saturation"
+        android:id="@+id/textView2"
         android:layout_centerVertical="true"
-        android:layout_centerHorizontal="true" />
+        android:layout_alignLeft="@+id/textView"
+        android:layout_alignStart="@+id/textView"
+       />
+
+    <SeekBar
+        android:layout_width="300dp"
+        android:layout_height="wrap_content"
+        android:id="@+id/satSeekBar"
+        android:layout_marginTop="5dp"
+        android:layout_below="@+id/textView2"
+        android:layout_alignLeft="@+id/blackSeekBar"
+        android:layout_alignStart="@+id/blackSeekBar"
+        android:indeterminate="false"
+        android:progress="50"/>
 
 
 </RelativeLayout>

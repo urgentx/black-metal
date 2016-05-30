@@ -54,6 +54,8 @@ public class DisplayMessageActivity extends AppCompatActivity {
     Bitmap rawImage = null;
     String bandName = null;
     ShareDialog shareDialog;
+    private boolean greyScale;
+    private int blackFilterCeiling, saturationLevel;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,6 +72,11 @@ public class DisplayMessageActivity extends AppCompatActivity {
         //retrieve image from external memory and set it to display in an ImageView
         String imagePath = getIntent().getStringExtra(MyActivity.IMAGE_PATH); // retrieve path from intent
 
+        greyScale = getIntent().getExtras().getBoolean(MyActivity.GREYSCALE);
+        blackFilterCeiling = getIntent().getExtras().getInt(MyActivity.BLACK_FILTER);
+        saturationLevel = getIntent().getExtras().getInt(MyActivity.SATURATION_FILTER);
+
+
         if (imagePath != null) {
             try {
                 ContentResolver cr = getContentResolver();  //user ContentResolver to access image
@@ -85,12 +92,8 @@ public class DisplayMessageActivity extends AppCompatActivity {
                 rawImage = Bitmap.createScaledBitmap(rawImage, 512, height, true);
             }
 
-            ColorMatrix matrix = new ColorMatrix();                             //set ColorMatrix to greyscale
-            matrix.setSaturation(0);
-            ColorMatrixColorFilter filter = new ColorMatrixColorFilter(matrix);
 
-            applyBlackFilter(); //distort bitmap
-            createContrast(130);
+
             Intent intent = getIntent();    //retrieve text entered in MyActivity
             bandName = intent.getStringExtra(MyActivity.EXTRA_MESSAGE);
 
@@ -98,9 +101,21 @@ public class DisplayMessageActivity extends AppCompatActivity {
 
 
             ImageView imageView = (ImageView) findViewById(R.id.imgViewDisplay);   //find the imageView in our layout
-            imageView.setColorFilter(filter);           //apply greyscale filter to imageView
-            imageView.setImageBitmap(rawImage);     //give ImageView our bitmap
+            if(greyScale) {
+                ColorMatrix matrix = new ColorMatrix();                             //set ColorMatrix to greyscale
+                matrix.setSaturation(0);
+                ColorMatrixColorFilter filter = new ColorMatrixColorFilter(matrix);
 
+
+                imageView.setColorFilter(filter);           //apply greyscale filter to imageView
+            }
+
+            applyBlackFilter(blackFilterCeiling); //distort bitmap
+            //applyContrastFilter(130);
+            if(saturationLevel > 0){ //don't saturate at all when slider progress == 0
+                applySaturationFilter(saturationLevel * 2); //apply saturation
+            }
+            imageView.setImageBitmap(rawImage);     //give ImageView our bitmap
         }
 
     }
@@ -118,7 +133,38 @@ public class DisplayMessageActivity extends AppCompatActivity {
         shareDialog.show(content);  //show user share Dialog
     }
 
-    public void createContrast( double value) {
+    //saturate image by converting pixels to HSV color system, increasing sat. value, then reverting back to RGB
+    public void applySaturationFilter(int level) {
+        // get image size
+        int width = rawImage.getWidth();
+        int height = rawImage.getHeight();
+        int[] pixels = new int[width * height];
+        float[] HSV = new float[3];
+        // get pixel array from source
+        rawImage.getPixels(pixels, 0, width, 0, 0, width, height);
+
+        int index = 0;
+        // iteration through pixels
+        for(int y = 0; y < height; ++y) {
+            for(int x = 0; x < width; ++x) {
+                // get current index in 2D-matrix
+                index = y * width + x;
+                // convert to HSV
+                Color.colorToHSV(pixels[index], HSV);
+                // increase Saturation level
+                HSV[1] *= level;
+                HSV[1] = (float) Math.max(0.0, Math.min(HSV[1], 1.0));
+                // take color back
+                pixels[index] |= Color.HSVToColor(HSV);
+            }
+        }
+        // output bitmap
+        rawImage = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+        rawImage.setPixels(pixels, 0, width, 0, 0, width, height);
+
+    }
+
+    public void applyContrastFilter( double value) {
         // image size
         int width = rawImage.getWidth();
         int height = rawImage.getHeight();
@@ -158,7 +204,8 @@ public class DisplayMessageActivity extends AppCompatActivity {
         }
     }
 
-    public void applyBlackFilter() {
+    //granulates the image with black dots based upon threshold of pixel color values
+    public void applyBlackFilter(int blackFilterCeiling) {
         // get image size
         int width = rawImage.getWidth();
         int height = rawImage.getHeight();
@@ -179,7 +226,7 @@ public class DisplayMessageActivity extends AppCompatActivity {
                 G = Color.green(pixels[index]);
                 B = Color.blue(pixels[index]);
                 // generate threshold
-                thresHold = random.nextInt(0xBF);
+                thresHold = random.nextInt(2 * blackFilterCeiling + 1);
                 if(R < thresHold && G < thresHold && B < thresHold) {
                     pixels[index] = Color.rgb(0x10, 0x10, 0x10);
                 }
@@ -190,6 +237,7 @@ public class DisplayMessageActivity extends AppCompatActivity {
         rawImage.setPixels(pixels, 0, width, 0, 0, width, height);
     }
 
+    //uses a custom font to draw text on image on an arc
     public void drawText() {
         Canvas canvas = new Canvas(rawImage); //canvas for drawing on
 

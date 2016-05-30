@@ -28,9 +28,15 @@ import java.io.File;
  */
 public class MainFragment extends Fragment {
 
+    private boolean greyScale;
+    private int blackFilterValue;
+    private int satFilterValue;
     EditText editText;
     public final static String EXTRA_MESSAGE = "com.urgentx.blackmetal.MESSAGE";
     public final static String IMAGE_PATH = "com.urgentx.blackmetal.IMAGE";
+    public final static String GREYSCALE = "com.urgentx.blackmetal.GREYSCALE";
+    public final static String BLACK_FILTER = "com.urgentx.blackmetal.BLACK";
+    public final static String SATURATION_FILTER = "com.urgentx.blackmetal.SATURATION";
     String imagePath; //path to user-taken image
 
     @Override
@@ -43,7 +49,7 @@ public class MainFragment extends Fragment {
     public void onActivityCreated(Bundle savedInstanceState){
         super.onActivityCreated(savedInstanceState);
 
-        RelativeLayout linearLayout = (RelativeLayout) getActivity().findViewById(R.id.mainfraglayout);
+        RelativeLayout relativeLayout = (RelativeLayout) getActivity().findViewById(R.id.mainfraglayout);
 
 
         FloatingActionButton fab = (FloatingActionButton) getView().findViewById(R.id.fragfab);
@@ -59,6 +65,8 @@ public class MainFragment extends Fragment {
         editText = (EditText) getView().findViewById(R.id.main_fragment_edittext);
 
 
+
+
         Button button = (Button) getView().findViewById(R.id.main_fragment_button);
 
         button.setOnClickListener(new View.OnClickListener() {
@@ -69,8 +77,9 @@ public class MainFragment extends Fragment {
             }
         });
 
-
-
+        greyScale = true; //set pic to be greyscale by default
+        blackFilterValue = 75;  //default blackFilter value
+        satFilterValue = 50;    //default satFilter value
 
     }
 
@@ -117,6 +126,36 @@ public class MainFragment extends Fragment {
         if (imagePath != null) {
             intent.putExtra(IMAGE_PATH, imagePath);  //include path to stored bmp
         }
+        intent.putExtra(GREYSCALE, greyScale);
+        intent.putExtra(BLACK_FILTER, blackFilterValue);
+        intent.putExtra(SATURATION_FILTER, satFilterValue);
         startActivity(intent);
+    }
+
+    public boolean isGreyScale() {
+        return greyScale;
+    }
+
+    public void setGreyScale(boolean greyScale) {
+        this.greyScale = greyScale;
+
+        Toast.makeText(getContext(), "Greyscale checked",
+                Toast.LENGTH_LONG).show();
+    }
+
+    public int getBlackFilterValue() {
+        return blackFilterValue;
+    }
+
+    public void setBlackFilterValue(int blackFilterValue) {
+        this.blackFilterValue = blackFilterValue;
+    }
+
+    public int getSatFilterValue() {
+        return satFilterValue;
+    }
+
+    public void setSatFilterValue(int satFilterValue) {
+        this.satFilterValue = satFilterValue;
     }
 }

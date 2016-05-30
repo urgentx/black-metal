@@ -40,11 +40,14 @@ import java.util.Date;
 import com.facebook.FacebookSdk;
 import com.facebook.appevents.AppEventsLogger;
 
-public class MyActivity extends AppCompatActivity {
+public class MyActivity extends AppCompatActivity implements SettingsFragment.OnSettingsChangedListener {
 
+    //Access strings
     public final static String EXTRA_MESSAGE = "com.urgentx.blackmetal.MESSAGE";
     public final static String IMAGE_PATH = "com.urgentx.blackmetal.IMAGE";
-
+    public final static String GREYSCALE = "com.urgentx.blackmetal.GREYSCALE";
+    public final static String BLACK_FILTER = "com.urgentx.blackmetal.BLACK";
+    public final static String SATURATION_FILTER = "com.urgentx.blackmetal.SATURATION";
     String imagePath; //path to user-taken image
 
     @Override
@@ -52,13 +55,10 @@ public class MyActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_my);
 
-        //Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
-        //setSupportActionBar(toolbar);
-
-        TabLayout tabLayout = (TabLayout) findViewById(R.id.tab_layout);
-        tabLayout.addTab(tabLayout.newTab().setText("Take pic"));
-        tabLayout.addTab(tabLayout.newTab().setText("Settings"));
-        tabLayout.setTabGravity(TabLayout.GRAVITY_FILL);
+        TabLayout tabLayout = (TabLayout) findViewById(R.id.tab_layout);  //set up layout for tabs
+        tabLayout.addTab(tabLayout.newTab().setText("Take pic"));         //..
+        tabLayout.addTab(tabLayout.newTab().setText("Settings"));         //..
+        tabLayout.setTabGravity(TabLayout.GRAVITY_FILL);                  //..
 
         final ViewPager viewPager = (ViewPager) findViewById(R.id.pager);
         final PagerAdapter adapter = new PagerAdapter(getSupportFragmentManager(), tabLayout.getTabCount());
@@ -167,6 +167,39 @@ public class MyActivity extends AppCompatActivity {
 
         }*/
 
+    }
+
+    //respond to check/uncheck of Greyscale switch in SettingsFragment
+    @Override
+    public void onGreyScaleSelected(boolean on) {
+        //set boolean in MainFragment
+        MainFragment mainFragment = (MainFragment) getSupportFragmentManager().findFragmentByTag("mainFragID");
+
+        if(mainFragment != null) {
+            mainFragment.setGreyScale(on);
+        }
+    }
+
+    //respond to slide of Black filter SeekBar in SettingsFragment
+    @Override
+    public void onDarkSeekBarChanged(int value){
+        //set int in MainFragment
+        MainFragment mainFragment = (MainFragment) getSupportFragmentManager().findFragmentByTag("mainFragID");
+
+        if(mainFragment != null){
+            mainFragment.setBlackFilterValue(value);
+        }
+    }
+
+    //respond to slide of Saturation filter SeekBar in SettingsFragment
+    @Override
+    public void onSatSeekBarChanged(int value){
+        //set int in MainFragment
+        MainFragment mainFragment = (MainFragment) getSupportFragmentManager().findFragmentByTag("mainFragID");
+
+        if(mainFragment != null){
+            mainFragment.setSatFilterValue(value);
+        }
     }
 
     @Override

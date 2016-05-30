@@ -10,10 +10,12 @@ import android.support.v4.app.FragmentStatePagerAdapter;
 public class PagerAdapter extends FragmentStatePagerAdapter {
 
     int numTabs;
+    private FragmentManager fragmentManager;
 
     public PagerAdapter(FragmentManager fragmentManager, int numTabs){
         super(fragmentManager);
         this.numTabs = numTabs;
+        this.fragmentManager = fragmentManager;
     }
 
     @Override
@@ -22,9 +24,11 @@ public class PagerAdapter extends FragmentStatePagerAdapter {
         switch (position){
             case 0:
                 MainFragment tab1 = new MainFragment();
+                fragmentManager.beginTransaction().add(tab1,"mainFragID");
                 return tab1;
             case 1:
                 SettingsFragment tab2 = new SettingsFragment();
+
                 return tab2;
             default:
                 return null;

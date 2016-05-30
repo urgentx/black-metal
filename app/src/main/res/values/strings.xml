@@ -7,4 +7,7 @@
     <string name="title_activity_display_message">My Message</string>
     <string name="title_addition">of the Northern Winterfrost Nebula</string>
     <string name="facebook_app_id">1279540788740821</string>
+    <string name="main_description">Welcome to Black Metal. Enter a title for your picture, then go ahead and click the button below to take it.</string>
+    <string name="main_description_2">Swipe along to the Settings tab on the right to customise the look and feel of your most grim and bleak creation.</string>
+
 </resources>
