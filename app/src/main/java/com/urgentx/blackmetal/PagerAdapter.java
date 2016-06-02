@@ -5,30 +5,29 @@ import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentStatePagerAdapter;
 
 /**
- * Created by Barco on 27-May-16.
+ * Implementation of PagerAdapter to generate appropriate fragment to display in MainActivity.
  */
+
 public class PagerAdapter extends FragmentStatePagerAdapter {
 
     int numTabs;
     private FragmentManager fragmentManager;
 
-    public PagerAdapter(FragmentManager fragmentManager, int numTabs){
+    public PagerAdapter(FragmentManager fragmentManager, int numTabs){  //constructor
         super(fragmentManager);
-        this.numTabs = numTabs;
+        this.numTabs = numTabs; //could customise # of tabs here
         this.fragmentManager = fragmentManager;
     }
 
     @Override
-    public Fragment getItem(int position){
-
+    public Fragment getItem(int position){  //initiate appropriate fragment based on tab selected
         switch (position){
             case 0:
                 MainFragment tab1 = new MainFragment();
-                fragmentManager.beginTransaction().add(tab1,"mainFragID");
+                fragmentManager.beginTransaction().add(tab1,"mainFragID");  //give this fragment an ID so we can access it later
                 return tab1;
             case 1:
                 SettingsFragment tab2 = new SettingsFragment();
-
                 return tab2;
             default:
                 return null;

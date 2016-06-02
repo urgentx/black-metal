@@ -9,54 +9,63 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
 import android.os.Bundle;
-import android.support.v7.widget.Toolbar;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
-
-import com.facebook.appevents.AppEventsLogger;
 
 import java.io.File;
 
 /**
- * Created by Barco on 25-May-16.
+ * Main app logic goes on here. This fragment displays an EditText with app description/instructions,
+ * as well as using native API to let the user take a picture. Accepts information about settings
+ * from MainActivity, and then sends all picture/text information in an Intent to DisplayMessageActivity
  */
-public class MainFragment extends Fragment {
 
+public class MainFragment extends Fragment {
+    //values for our settings to be updated from MainActivity intent
     private boolean greyScale;
     private int blackFilterValue;
     private int satFilterValue;
+
+    private int redGammaValue;
+    private int greenGammaValue;
+    private int blueGammaValue;
+
     EditText editText;
+
+    //access strings
     public final static String EXTRA_MESSAGE = "com.urgentx.blackmetal.MESSAGE";
     public final static String IMAGE_PATH = "com.urgentx.blackmetal.IMAGE";
     public final static String GREYSCALE = "com.urgentx.blackmetal.GREYSCALE";
     public final static String BLACK_FILTER = "com.urgentx.blackmetal.BLACK";
     public final static String SATURATION_FILTER = "com.urgentx.blackmetal.SATURATION";
+    public final static String RED_GAMMA = "com.urgentx.blackmetal.RED";
+    public final static String GREEN_GAMMA = "com.urgentx.blackmetal.GREEN";
+    public final static String BLUE_GAMMA = "com.urgentx.blackmetal.BLUE";
+
     String imagePath; //path to user-taken image
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState){
-        return inflater.inflate(R.layout.fragment_main_layout, container,false);
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) { //inflate our layout container
+        return inflater.inflate(R.layout.fragment_main_layout, container, false);
 
     }
 
     @Override
-    public void onActivityCreated(Bundle savedInstanceState){
+    public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
 
-        RelativeLayout relativeLayout = (RelativeLayout) getActivity().findViewById(R.id.mainfraglayout);
-
+        RelativeLayout relativeLayout = (RelativeLayout) getActivity().findViewById(R.id.mainfraglayout); //in case we want to alter layout
 
         FloatingActionButton fab = (FloatingActionButton) getView().findViewById(R.id.fragfab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                Snackbar.make(view, "Snap a fab pic!", Snackbar.LENGTH_LONG)
+                Snackbar.make(view, "Snap a pic!", Snackbar.LENGTH_SHORT)
                         .setAction("Action", null).show();
                 takePhoto();
             }
@@ -64,11 +73,7 @@ public class MainFragment extends Fragment {
 
         editText = (EditText) getView().findViewById(R.id.main_fragment_edittext);
 
-
-
-
-        Button button = (Button) getView().findViewById(R.id.main_fragment_button);
-
+        Button button = (Button) getView().findViewById(R.id.main_fragment_button); //set up button
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -77,6 +82,7 @@ public class MainFragment extends Fragment {
             }
         });
 
+        //settings defaults
         greyScale = true; //set pic to be greyscale by default
         blackFilterValue = 75;  //default blackFilter value
         satFilterValue = 50;    //default satFilter value
@@ -84,9 +90,9 @@ public class MainFragment extends Fragment {
     }
 
     //create new intent and request that it dumps photo in our file
-
     private static final int TAKE_PICTURE = 1;  //request code
     private Uri imageUri;
+
     public void takePhoto() {
         Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE); //make camera intent
         File photo = new File(Environment.getExternalStorageDirectory(), "Black_metal_pic.jpg"); //create a file in external storage
@@ -114,11 +120,13 @@ public class MainFragment extends Fragment {
         }
 
     }
+
     //Called on click of Send button
     public void sendMessage() {
 
         Snackbar.make(getView().getRootView(), "CVLT!", Snackbar.LENGTH_LONG)
                 .setAction("Action", null).show();
+
         Intent intent = new Intent(getActivity(), DisplayMessageActivity.class);
 
         String message = editText.getText().toString();
@@ -126,11 +134,17 @@ public class MainFragment extends Fragment {
         if (imagePath != null) {
             intent.putExtra(IMAGE_PATH, imagePath);  //include path to stored bmp
         }
+        //add settings to intent
         intent.putExtra(GREYSCALE, greyScale);
         intent.putExtra(BLACK_FILTER, blackFilterValue);
         intent.putExtra(SATURATION_FILTER, satFilterValue);
+        intent.putExtra(RED_GAMMA, redGammaValue);
+        intent.putExtra(GREEN_GAMMA, greenGammaValue);
+        intent.putExtra(BLUE_GAMMA, blueGammaValue);
         startActivity(intent);
     }
+
+    //getters/setters
 
     public boolean isGreyScale() {
         return greyScale;
@@ -138,9 +152,6 @@ public class MainFragment extends Fragment {
 
     public void setGreyScale(boolean greyScale) {
         this.greyScale = greyScale;
-
-        Toast.makeText(getContext(), "Greyscale checked",
-                Toast.LENGTH_LONG).show();
     }
 
     public int getBlackFilterValue() {
@@ -158,4 +169,30 @@ public class MainFragment extends Fragment {
     public void setSatFilterValue(int satFilterValue) {
         this.satFilterValue = satFilterValue;
     }
+
+
+    public int getRedGammaValue() {
+        return redGammaValue;
+    }
+
+    public void setRedGammaValue(int redGammaValue) {
+        this.redGammaValue = redGammaValue;
+    }
+
+    public int getGreenGammaValue() {
+        return greenGammaValue;
+    }
+
+    public void setGreenGammaValue(int greenGammaValue) {
+        this.greenGammaValue = greenGammaValue;
+    }
+
+    public int getBlueGammaValue() {
+        return blueGammaValue;
+    }
+
+    public void setBlueGammaValue(int blueGammaValue) {
+        this.blueGammaValue = blueGammaValue;
+    }
+
 }
