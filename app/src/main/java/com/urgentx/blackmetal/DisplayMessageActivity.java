@@ -1,18 +1,23 @@
 package com.urgentx.blackmetal;
 
 import android.content.ContentResolver;
+import android.content.ContentUris;
+import android.content.ContentValues;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
+import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
@@ -24,6 +29,10 @@ import com.facebook.share.model.SharePhoto;
 import com.facebook.share.model.SharePhotoContent;
 import com.facebook.share.widget.ShareDialog;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.OutputStream;
 import java.util.Random;
 
 /**
@@ -35,6 +44,7 @@ public class DisplayMessageActivity extends AppCompatActivity {
 
     Bitmap rawImage = null;
     String bandName = null;
+    String imagePath = null;
     ShareDialog shareDialog;
 
     //settings variables
@@ -55,7 +65,7 @@ public class DisplayMessageActivity extends AppCompatActivity {
         setSupportActionBar(toolbar);
 
         //retrieve image from external memory and set it to display in an ImageView
-        String imagePath = getIntent().getStringExtra(MyActivity.IMAGE_PATH); // retrieve path from intent
+        imagePath = getIntent().getStringExtra(MyActivity.IMAGE_PATH); // retrieve path from intent
 
         //get settings from MainFragment in MainActivity
         greyScale = getIntent().getExtras().getBoolean(MyActivity.GREYSCALE);
@@ -80,7 +90,6 @@ public class DisplayMessageActivity extends AppCompatActivity {
                 rawImage = Bitmap.createScaledBitmap(rawImage, 512, height, true);
             }
 
-
             Intent intent = getIntent();    //retrieve text entered in MyActivity
             bandName = intent.getStringExtra(MyActivity.EXTRA_MESSAGE);
 
@@ -96,11 +105,13 @@ public class DisplayMessageActivity extends AppCompatActivity {
 
             ImageView imageView = (ImageView) findViewById(R.id.imgViewDisplay);   //find the imageView in our layout
             if (greyScale) {
-                ColorMatrix matrix = new ColorMatrix();                             //set ColorMatrix to greyscale
-                matrix.setSaturation(0);
-                ColorMatrixColorFilter filter = new ColorMatrixColorFilter(matrix);
+                //ColorMatrix matrix = new ColorMatrix();                             //set ColorMatrix to greyscale
+                //matrix.setSaturation(0);
+                //ColorMatrixColorFilter filter = new ColorMatrixColorFilter(matrix);
 
-                imageView.setColorFilter(filter);           //apply greyscale filter to imageView
+                //imageView.setColorFilter(filter);           //apply greyscale filter to imageView
+
+                applyGreyscale();
             }
 
             applyBlackFilter(blackFilterCeiling); //distort bitmap
@@ -114,6 +125,11 @@ public class DisplayMessageActivity extends AppCompatActivity {
             drawText(); //add text to bitmap
 
             imageView.setImageBitmap(rawImage);     //give ImageView our bitmap
+
+
+         // galleryAddPic();
+
+            //MediaStore.Images.Media.insertImage(getContentResolver(), rawImage, "Black Metal" , "Generated using Black Metal app"); //add picture to gallery so user can access it with system media provider
         }
 
     }
@@ -129,6 +145,29 @@ public class DisplayMessageActivity extends AppCompatActivity {
                 .build();
 
         shareDialog.show(content);  //show user share Dialog
+    }
+
+    // Called on click of Save to Gallery button
+    public void saveToGallery(View view){
+        MediaStore.Images.Media.insertImage(getContentResolver(), rawImage, "Black Metal" , "Generated using Black Metal app"); //add picture to gallery so user can access it with system media provider
+    }
+
+    public void applyGreyscale() {
+        Bitmap grayscaleBitmap = Bitmap.createBitmap(
+                rawImage.getWidth(), rawImage.getHeight(),
+                Bitmap.Config.ARGB_8888);
+
+        Canvas c = new Canvas(grayscaleBitmap);
+        Paint p = new Paint();
+        ColorMatrix cm = new ColorMatrix();
+
+        cm.setSaturation(0);
+        ColorMatrixColorFilter filter = new ColorMatrixColorFilter(cm);
+        p.setColorFilter(filter);
+        c.drawBitmap(rawImage, 0, 0, p);
+
+        rawImage = grayscaleBitmap;
+
     }
 
     //add/subtract gamma from each image pixel
@@ -205,7 +244,6 @@ public class DisplayMessageActivity extends AppCompatActivity {
         //output bitmap
         rawImage = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
         rawImage.setPixels(pixels, 0, width, 0, 0, width, height);
-
     }
 
     public void applyContrastFilter(double value) {
@@ -311,5 +349,13 @@ public class DisplayMessageActivity extends AppCompatActivity {
         RectF oval = new RectF(80, 100, 400, 300); //set curve bounds
         mArc.addArc(oval, -180, 200);
         canvas.drawTextOnPath(bandName, mArc, 5, 20, mPaintText);
+    }
+
+    private void galleryAddPic() {
+        Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
+        File f = new File(imagePath);
+        Uri contentUri = Uri.fromFile(f);
+        mediaScanIntent.setData(contentUri);
+        this.sendBroadcast(mediaScanIntent);
     }
 }

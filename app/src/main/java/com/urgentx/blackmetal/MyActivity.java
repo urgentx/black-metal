@@ -1,11 +1,15 @@
 package com.urgentx.blackmetal;
 
+import android.content.Intent;
 import android.os.Bundle;
+import android.support.design.widget.CoordinatorLayout;
 import android.support.design.widget.TabLayout;
 import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.widget.RelativeLayout;
+import android.widget.TextView;
 
 /**
  * Starting Activity, uses a ViewPager to navigate through MainFragment and SettingsFragment. Accepts
@@ -132,10 +136,11 @@ public class MyActivity extends AppCompatActivity implements SettingsFragment.On
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
         if (id == R.id.action_settings) {
+            Intent intent = new Intent(this, AboutActivity.class);
+            startActivity(intent);
             return true;
         }
 
         return super.onOptionsItemSelected(item);
     }
-
 }

@@ -31,8 +31,18 @@
         android:onClick="shareContent"
         android:layout_gravity="bottom"
         android:id="@+id/button"
+        android:layout_marginBottom="110dp"
+        android:layout_alignParentBottom="true"
+        android:layout_centerHorizontal="true" />
+
+    <Button
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Save to gallery"
+        android:id="@+id/button2"
         android:layout_alignParentBottom="true"
         android:layout_centerHorizontal="true"
-        android:layout_marginBottom="67dp" />
+        android:layout_marginBottom="54dp"
+        android:onClick="saveToGallery"/>
 
 </RelativeLayout>
