@@ -1,23 +1,19 @@
 package com.urgentx.blackmetal;
 
 import android.content.ContentResolver;
-import android.content.ContentUris;
-import android.content.ContentValues;
-import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
-import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.MediaStore;
+import android.os.Environment;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
@@ -30,9 +26,8 @@ import com.facebook.share.model.SharePhotoContent;
 import com.facebook.share.widget.ShareDialog;
 
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.FileOutputStream;
+import java.util.Calendar;
 import java.util.Random;
 
 /**
@@ -127,7 +122,7 @@ public class DisplayMessageActivity extends AppCompatActivity {
             imageView.setImageBitmap(rawImage);     //give ImageView our bitmap
 
 
-         // galleryAddPic();
+            // galleryAddPic();
 
             //MediaStore.Images.Media.insertImage(getContentResolver(), rawImage, "Black Metal" , "Generated using Black Metal app"); //add picture to gallery so user can access it with system media provider
         }
@@ -148,8 +143,47 @@ public class DisplayMessageActivity extends AppCompatActivity {
     }
 
     // Called on click of Save to Gallery button
-    public void saveToGallery(View view){
-        MediaStore.Images.Media.insertImage(getContentResolver(), rawImage, "Black Metal" , "Generated using Black Metal app"); //add picture to gallery so user can access it with system media provider
+    public void saveToGallery(View view) {
+        savePhoto(rawImage);
+        Toast.makeText(getApplicationContext(), "Saved to gallery", Toast.LENGTH_SHORT).show();
+    }
+
+    private String savePhoto(Bitmap bmp) {
+        File path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES); //this is the default location inside SD Card - Pictures folder
+        FileOutputStream out = null;
+        Calendar c = Calendar.getInstance(); //get Calendar to set date/time on bitmap
+
+        String date = fromInt(c.get(Calendar.MONTH)) //build a date stamp
+                + fromInt(c.get(Calendar.DAY_OF_MONTH))
+                + fromInt(c.get(Calendar.YEAR))
+                + fromInt(c.get(Calendar.HOUR_OF_DAY))
+                + fromInt(c.get(Calendar.MINUTE))
+                + fromInt(c.get(Calendar.SECOND));
+        File imageFileName = new File(path, "blackmetal_" + date.toString() + ".jpg"); //imageFileFolder
+        try {
+            out = new FileOutputStream(imageFileName);
+            bmp.compress(Bitmap.CompressFormat.JPEG, 100, out); //insert our bitmap
+            out.flush();
+            out.close();
+            scanPhoto(imageFileName.toString());
+            out = null;
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        return imageFileName.toString();
+    }
+
+    private String fromInt(int val) {
+        return String.valueOf(val);
+    }
+
+    //invoke system media scanner to add bitmap to system media gallery
+    private void scanPhoto(String imageFileName) {
+        Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE); //build intent with Uri
+        File f = new File(imageFileName);
+        Uri contentUri = Uri.fromFile(f);
+        mediaScanIntent.setData(contentUri);
+        getApplicationContext().sendBroadcast(mediaScanIntent); //..and send it off
     }
 
     public void applyGreyscale() {
@@ -167,7 +201,6 @@ public class DisplayMessageActivity extends AppCompatActivity {
         c.drawBitmap(rawImage, 0, 0, p);
 
         rawImage = grayscaleBitmap;
-
     }
 
     //add/subtract gamma from each image pixel
@@ -349,13 +382,5 @@ public class DisplayMessageActivity extends AppCompatActivity {
         RectF oval = new RectF(80, 100, 400, 300); //set curve bounds
         mArc.addArc(oval, -180, 200);
         canvas.drawTextOnPath(bandName, mArc, 5, 20, mPaintText);
-    }
-
-    private void galleryAddPic() {
-        Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE);
-        File f = new File(imagePath);
-        Uri contentUri = Uri.fromFile(f);
-        mediaScanIntent.setData(contentUri);
-        this.sendBroadcast(mediaScanIntent);
     }
 }

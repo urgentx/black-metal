@@ -1,6 +1,5 @@
 package com.urgentx.blackmetal;
 
-import android.content.Intent;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
@@ -14,8 +13,7 @@ public class AboutActivity extends AppCompatActivity {
     }
 
     //called on click of Back to App button
-    public void goBack(View view ){
+    public void goBack(View view) {
         finish();
-
     }
 }

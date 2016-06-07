@@ -116,9 +116,7 @@ public class MainFragment extends Fragment {
                     imagePath = selectedImage.toString();      //set our imagePath to our URI
 
                 }
-
         }
-
     }
 
     //Called on click of Send button

@@ -16,8 +16,8 @@
             android:paddingTop="40dp"
             android:text="@string/about_description"
             android:layout_alignParentTop="true"
-            android:layout_alignParentRight="true"
-            android:layout_alignParentEnd="true" />
+            android:layout_alignParentLeft="true"
+            android:layout_alignParentStart="true" />
 
         <ImageView
             android:padding="12dp"
@@ -25,7 +25,8 @@
             android:layout_height="wrap_content"
             android:src="@drawable/original_icon"
             android:id="@+id/imageView"
-            android:layout_below="@+id/about_text_view"
+            android:layout_marginTop="42dp"
+            android:layout_alignParentTop="true"
             android:layout_alignParentLeft="true"
             android:layout_alignParentStart="true" />
 
@@ -34,7 +35,8 @@
             android:layout_height="wrap_content"
             android:text="@string/about_description_2"
             android:id="@+id/textView9"
-            android:layout_below="@+id/imageView"
+            android:layout_marginTop="393dp"
+            android:layout_below="@+id/about_text_view"
             android:layout_alignParentLeft="true"
             android:layout_alignParentStart="true" />
 
@@ -52,9 +54,9 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="@string/return_button"
-            android:layout_below="@id/imageView2"
-            android:layout_centerHorizontal="true"
-            android:onClick="goBack"/>
+            android:onClick="goBack"
+            android:layout_alignParentBottom="true"
+            android:layout_centerHorizontal="true" />
 
 
 
