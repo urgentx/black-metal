@@ -3,8 +3,8 @@
     <string name="action_about">About</string>
     <string name="button_send">GO</string>
     <string name="return_button">Back to app</string>
-    <string name="button_share">Share to your friends!</string>
-    <string name="edit_message">Name your album!</string>
+    <string name="button_share">Share to your Facebook!</string>
+    <string name="edit_message">Name your album</string>
     <string name="title_activity_display_message">My Message</string>
     <string name="title_addition">of the Northern Winterfrost Nebula</string>
     <string name="facebook_app_id">1279540788740821</string>

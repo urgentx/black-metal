@@ -100,6 +100,7 @@ public class DisplayMessageActivity extends AppCompatActivity {
 
             ImageView imageView = (ImageView) findViewById(R.id.imgViewDisplay);   //find the imageView in our layout
             if (greyScale) {
+                //old method using ImageView
                 //ColorMatrix matrix = new ColorMatrix();                             //set ColorMatrix to greyscale
                 //matrix.setSaturation(0);
                 //ColorMatrixColorFilter filter = new ColorMatrixColorFilter(matrix);
@@ -107,11 +108,12 @@ public class DisplayMessageActivity extends AppCompatActivity {
                 //imageView.setColorFilter(filter);           //apply greyscale filter to imageView
 
                 applyGreyscale();
+                applyContrastFilter(30);
             }
 
             applyBlackFilter(blackFilterCeiling); //distort bitmap
 
-            //applyContrastFilter(130);
+
 
             if (saturationLevel > 0) { //don't saturate at all when slider progress == 0
                 applySaturationFilter(saturationLevel * 2); //apply saturation
@@ -121,12 +123,10 @@ public class DisplayMessageActivity extends AppCompatActivity {
 
             imageView.setImageBitmap(rawImage);     //give ImageView our bitmap
 
-
             // galleryAddPic();
 
             //MediaStore.Images.Media.insertImage(getContentResolver(), rawImage, "Black Metal" , "Generated using Black Metal app"); //add picture to gallery so user can access it with system media provider
         }
-
     }
 
     // Called on click of Share button
@@ -144,8 +144,12 @@ public class DisplayMessageActivity extends AppCompatActivity {
 
     // Called on click of Save to Gallery button
     public void saveToGallery(View view) {
-        savePhoto(rawImage);
-        Toast.makeText(getApplicationContext(), "Saved to gallery", Toast.LENGTH_SHORT).show();
+        if(rawImage != null) {
+            savePhoto(rawImage);
+            Toast.makeText(getApplicationContext(), "Saved to gallery", Toast.LENGTH_SHORT).show();
+        } else {
+            Toast.makeText(getApplicationContext(), "No picture taken", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private String savePhoto(Bitmap bmp) {
