@@ -12,8 +12,10 @@ import android.graphics.Path;
 import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
@@ -57,7 +59,18 @@ public class DisplayMessageActivity extends AppCompatActivity {
         setContentView(R.layout.activity_display_message);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar); //set up toolbar
         toolbar.setTitle("Result");
-        setSupportActionBar(toolbar);
+        toolbar.setNavigationIcon(R.drawable.ic_back);
+        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN){   //handle back button
+                    onBackPressed();    //call back button behaviour
+                }
+            }
+        });
+
+        Snackbar.make(findViewById(R.id.activity_display_layout), "Nice!", Snackbar.LENGTH_LONG)
+                .setAction("Action", null).show();
 
         //retrieve image from external memory and set it to display in an ImageView
         imagePath = getIntent().getStringExtra(MyActivity.IMAGE_PATH); // retrieve path from intent
