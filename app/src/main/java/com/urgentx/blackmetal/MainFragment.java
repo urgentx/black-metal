@@ -1,10 +1,17 @@
 package com.urgentx.blackmetal;
 
+import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Environment;
+import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
+import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
@@ -18,6 +25,8 @@ import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import java.io.File;
+import java.io.FileDescriptor;
+import java.io.IOException;
 
 /**
  * Main app logic goes on here. This fragment displays an EditText with app description/instructions,
@@ -35,6 +44,8 @@ public class MainFragment extends Fragment {
     private int greenGammaValue;
     private int blueGammaValue;
 
+    private int font;
+
     EditText editText;
 
     //access strings
@@ -46,8 +57,9 @@ public class MainFragment extends Fragment {
     public final static String RED_GAMMA = "com.urgentx.blackmetal.RED";
     public final static String GREEN_GAMMA = "com.urgentx.blackmetal.GREEN";
     public final static String BLUE_GAMMA = "com.urgentx.blackmetal.BLUE";
+    public final static String FONT = "com.urgentx.blackmetal.FONT";
 
-    String imagePath; //path to user-taken image
+    String imagePath = null; //path to user-taken image
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) { //inflate our layout container
@@ -77,7 +89,6 @@ public class MainFragment extends Fragment {
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-
                 sendMessage();
             }
         });
@@ -86,20 +97,43 @@ public class MainFragment extends Fragment {
         greyScale = true; //set pic to be greyscale by default
         blackFilterValue = 75;  //default blackFilter value
         satFilterValue = 50;    //default satFilter value
-
+        font = 0;
     }
 
     //create new intent and request that it dumps photo in our file
     private static final int TAKE_PICTURE = 1;  //request code
-    private Uri imageUri;
+    private static final int CAMERA_REQUEST = 1;  //request code
+    private Uri imageUri = null;
 
     public void takePhoto() {
+        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {    //check for Android M.
+            requestPermissions(new String[]{Manifest.permission.CAMERA}, CAMERA_REQUEST);    //need to request permission at runtime
+            takePhotoWithPermission();
+        } else {
+            takePhotoWithPermission();
+        }
+    }
+
+    public void takePhotoWithPermission(){
+        requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},2);
         Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE); //make camera intent
         File photo = new File(Environment.getExternalStorageDirectory(), "Black_metal_pic.jpg"); //create a file in external storage
         intent.putExtra(MediaStore.EXTRA_OUTPUT,        //request extra output
                 Uri.fromFile(photo));                   //..to our URI
         imageUri = Uri.fromFile(photo);                 //save our URI for accessing image later
+
         startActivityForResult(intent, TAKE_PICTURE);   //start activity with request identifier so we can catch the result
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == CAMERA_REQUEST) {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Now user should be able to use camera
+               takePhotoWithPermission();
+            }
+        }
     }
 
     //catch result of camera activity
@@ -139,6 +173,7 @@ public class MainFragment extends Fragment {
         intent.putExtra(RED_GAMMA, redGammaValue);
         intent.putExtra(GREEN_GAMMA, greenGammaValue);
         intent.putExtra(BLUE_GAMMA, blueGammaValue);
+        intent.putExtra(FONT, font);
         startActivity(intent);
     }
 
@@ -193,4 +228,11 @@ public class MainFragment extends Fragment {
         this.blueGammaValue = blueGammaValue;
     }
 
+    public int getFont(){
+        return font;
+    }
+
+    public void setFont(int font){
+        this.font = font;
+    }
 }

@@ -7,9 +7,12 @@ import android.support.v7.widget.SwitchCompat;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.CompoundButton;
 import android.widget.RelativeLayout;
 import android.widget.SeekBar;
+import android.widget.Spinner;
 import android.widget.Toast;
 
 /**
@@ -34,6 +37,8 @@ public class SettingsFragment extends Fragment {
         public void onGreenSeekBarChanged(int value);
 
         public void onBlueSeekBarChanged(int value);
+
+        public void onFontSpinnerChanged(int value);
     }
 
     @Override
@@ -167,6 +172,28 @@ public class SettingsFragment extends Fragment {
             public void onStopTrackingTouch(SeekBar seekBar) {  //notify user of successful change?
                 /*Toast.makeText(getContext(), "Blue gamma changed",
                         Toast.LENGTH_SHORT).show();*/
+            }
+        });
+
+        //supply Font Spinner with array of options
+        Spinner fontSpinner = (Spinner) getView().findViewById(R.id.fontSpinner);
+        //create ArrayAdapter to fill Spinner with toString of each array item defined, use a default spinner layout
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(getActivity(), R.array.font_options, android.R.layout.simple_spinner_item);
+        //specify layout to use when list of choices appears
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        //apply adapter to Spinner
+        fontSpinner.setAdapter(adapter);
+
+        //set up Font Spinner listener
+        fontSpinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                mCallback.onFontSpinnerChanged(position);
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
             }
         });
     }

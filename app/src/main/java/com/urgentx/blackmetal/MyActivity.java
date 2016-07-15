@@ -7,6 +7,7 @@ import android.support.v4.view.ViewPager;
 import android.support.v7.app.AppCompatActivity;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.Window;
 
 /**
  * Starting Activity, uses a ViewPager to navigate through MainFragment and SettingsFragment. Accepts
@@ -24,9 +25,11 @@ public class MyActivity extends AppCompatActivity implements SettingsFragment.On
     public final static String RED_GAMMA = "com.urgentx.blackmetal.RED";
     public final static String GREEN_GAMMA = "com.urgentx.blackmetal.GREEN";
     public final static String BLUE_GAMMA = "com.urgentx.blackmetal.BLUE";
+    public final static String FONT = "com.urgentx.blackmetal.FONT";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
+
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_my);   //setup activity layout
 
@@ -55,6 +58,8 @@ public class MyActivity extends AppCompatActivity implements SettingsFragment.On
 
             }
         });
+
+
     }
 
     //respond to check/uncheck of Greyscale switch in SettingsFragment
@@ -120,6 +125,17 @@ public class MyActivity extends AppCompatActivity implements SettingsFragment.On
 
         if (mainFragment != null) {
             mainFragment.setBlueGammaValue(value);
+        }
+    }
+
+    //respond to Spinner selection in SettingsFragment
+    @Override
+    public void onFontSpinnerChanged(int value) {
+        //set int in MainFragment
+        MainFragment mainFragment = (MainFragment) getSupportFragmentManager().findFragmentByTag("mainFragID");
+
+        if (mainFragment != null) {
+            mainFragment.setFont(value);
         }
     }
 

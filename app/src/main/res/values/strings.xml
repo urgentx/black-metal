@@ -13,4 +13,9 @@
     <string name="about_description">Hi, I\'m Barco. \n\nDid you know the original icon for this app was going to be a rather more stylized version of this?</string>
     <string name="about_description_2">Turns out watermarking really does work.\n\nBy the way, thanks for using this app! I hope it\'s as enjoyable to use as it was to make. Created over several months of weekends and after-work hours, I believe Black Metal is a one of a kind accessory for a commonly misunderstood culture. If you like the idea of creating and spreading black metal artwork (approximations) to the world, consider rating this app and sharing it with your friends.\n\nI appreciate any comments or suggestions at my e-mail address: uxcedr@gmail.com\n\nThanks again,\nUrgent X (Barco)</string>
 
+    <string-array name="font_options">
+        <item>Ultimate Black Metal XXII</item>
+        <item>Pure Evil</item>
+    </string-array>
+
 </resources>

@@ -46,7 +46,7 @@ public class DisplayMessageActivity extends AppCompatActivity {
 
     //settings variables
     private boolean greyScale;
-    private int blackFilterCeiling, saturationLevel;
+    private int blackFilterCeiling, saturationLevel, font;
     private double redGammaValue, greenGammaValue, blueGammaValue;
 
     @Override
@@ -82,6 +82,7 @@ public class DisplayMessageActivity extends AppCompatActivity {
         redGammaValue = (double) getIntent().getExtras().getInt(MyActivity.RED_GAMMA);  //cast slider int values to double
         greenGammaValue = (double) getIntent().getExtras().getInt(MyActivity.GREEN_GAMMA);   //cast slider int values to double
         blueGammaValue = (double) getIntent().getExtras().getInt(MyActivity.BLUE_GAMMA);     //cast slider int values to double
+        font = getIntent().getExtras().getInt(MyActivity.FONT);
 
         if (imagePath != null) {
             try {
@@ -384,14 +385,18 @@ public class DisplayMessageActivity extends AppCompatActivity {
 
         Path mArc;  //path to put text on
         Paint mPaintText;
+        Typeface tf;
+        if(font == 0){
+            tf = Typeface.createFromAsset(getAssets(), "fonts/blackmetal.ttf"); //load font
+        } else {
+            tf = Typeface.createFromAsset(getAssets(), "fonts/pureevil.ttf"); //load font
+        }
 
-        Typeface tf = Typeface.createFromAsset(getAssets(), "fonts/blackmetal.ttf"); //load font
-        Typeface tf2 = Typeface.create(tf, Typeface.BOLD);
         mPaintText = new Paint(Paint.ANTI_ALIAS_FLAG);      //set up text properties
         mPaintText.setShadowLayer(5.0f, 10.0f, 10.0f, Color.WHITE); //set shadow
         mPaintText.setStyle(Paint.Style.FILL_AND_STROKE);
         mPaintText.setColor(Color.BLACK);
-        mPaintText.setTypeface(tf2);
+        mPaintText.setTypeface(tf);
         mPaintText.setTextSize(170f);
 
         mArc = new Path();

@@ -1,0 +1,1 @@
+-fixed nullpointer crash on 6.0
