@@ -6,6 +6,7 @@ import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Environment;
@@ -58,8 +59,16 @@ public class MainFragment extends Fragment {
     public final static String GREEN_GAMMA = "com.urgentx.blackmetal.GREEN";
     public final static String BLUE_GAMMA = "com.urgentx.blackmetal.BLUE";
     public final static String FONT = "com.urgentx.blackmetal.FONT";
+    public final static int PICK_IMAGE = 12;
+
+    public enum PicType {        //keep track of camera or from-file mode for src pic
+        FromFile, FromCamera
+    }
+
+    PicType picType; //declare mode tracker enum
 
     String imagePath = null; //path to user-taken image
+    String selectedImagePath = null; //path to user-selected image
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) { //inflate our layout container
@@ -77,16 +86,31 @@ public class MainFragment extends Fragment {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
+                picType = PicType.FromCamera; //set fromcamera mode
                 Snackbar.make(view, "Snap a pic!", Snackbar.LENGTH_SHORT)
                         .setAction("Action", null).show();
                 takePhoto();
             }
         });
 
+
+        Button button = (Button) getView().findViewById(R.id.file_button);
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, EXT_STORAGE_REQUEST);
+                picType = PicType.FromFile; //set fromfile mode
+                Intent intent = new Intent();
+                intent.setType("image/*");
+                intent.setAction(Intent.ACTION_GET_CONTENT);
+                startActivityForResult(Intent.createChooser(intent, "Select Picture"), TAKE_PICTURE);
+            }
+        });
+
         editText = (EditText) getView().findViewById(R.id.main_fragment_edittext);
 
-        Button button = (Button) getView().findViewById(R.id.main_fragment_button); //set up button
-        button.setOnClickListener(new View.OnClickListener() {
+        Button button1 = (Button) getView().findViewById(R.id.main_fragment_button); //set up button
+        button1.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 sendMessage();
@@ -103,36 +127,38 @@ public class MainFragment extends Fragment {
     //create new intent and request that it dumps photo in our file
     private static final int TAKE_PICTURE = 1;  //request code
     private static final int CAMERA_REQUEST = 1;  //request code
-    private Uri imageUri = null;
+    private static final int EXT_STORAGE_REQUEST = 2; //request code
+    private Uri imageUri = null;    //Uri for snapshot image
+    private Uri selectedUri = null; //Uri for gallery-selected image
 
     public void takePhoto() {
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {    //check for Android M.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {    //check for Android M.
             requestPermissions(new String[]{Manifest.permission.CAMERA}, CAMERA_REQUEST);    //need to request permission at runtime
-            takePhotoWithPermission();
-        } else {
-            takePhotoWithPermission();
         }
+        takePhotoWithPermission();
     }
 
-    public void takePhotoWithPermission(){
-        requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE},2);
+    public void takePhotoWithPermission() {
+        requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, EXT_STORAGE_REQUEST);
         Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE); //make camera intent
         File photo = new File(Environment.getExternalStorageDirectory(), "Black_metal_pic.jpg"); //create a file in external storage
         intent.putExtra(MediaStore.EXTRA_OUTPUT,        //request extra output
                 Uri.fromFile(photo));                   //..to our URI
         imageUri = Uri.fromFile(photo);                 //save our URI for accessing image later
-
         startActivityForResult(intent, TAKE_PICTURE);   //start activity with request identifier so we can catch the result
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == CAMERA_REQUEST) {
-            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Now user should be able to use camera
-               takePhotoWithPermission();
-            }
+
+
+            if (requestCode == CAMERA_REQUEST) {
+                if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                    // Now user should be able to use camera
+                    takePhotoWithPermission();
+                }
+
         }
     }
 
@@ -141,14 +167,28 @@ public class MainFragment extends Fragment {
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data); //overhead method, always called
         switch (requestCode) {
-            case TAKE_PICTURE:                                 //check for match with our request code
-                if (resultCode == Activity.RESULT_OK) {        //pic successful
-                    Uri selectedImage = imageUri;              //load our URI
-                    getActivity().getContentResolver().notifyChange(selectedImage, null);     //notify ContentResolver of new image @ URI
-                    Toast.makeText(getContext(), "File saved @ " + selectedImage.toString(),
-                            Toast.LENGTH_LONG).show();
-                    imagePath = selectedImage.toString();      //set our imagePath to our URI
+            case TAKE_PICTURE:
+                if(picType == PicType.FromCamera) {
+                    //check for match with our request code
+                    if (resultCode == Activity.RESULT_OK) {        //pic successful
+                        Uri selectedImage = imageUri;              //load our URI
+                        getActivity().getContentResolver().notifyChange(selectedImage, null);     //notify ContentResolver of new image @ URI
+                        Toast.makeText(getContext(), "File saved @ " + selectedImage.toString(),
+                                Toast.LENGTH_LONG).show();
+                        imagePath = selectedImage.toString();      //set our imagePath to our URI
+                    }
+                }
+                else if(picType == PicType.FromFile){
 
+                        if (resultCode == Activity.RESULT_OK) {
+                            if (data.getData() != null) {
+                                selectedUri = data.getData();
+
+                                Toast.makeText(getContext(), "File loaded from " + selectedUri.toString(),
+                                        Toast.LENGTH_LONG).show();
+                                selectedImagePath = selectedUri.toString();
+                            }
+                        }
                 }
         }
     }
@@ -163,9 +203,13 @@ public class MainFragment extends Fragment {
 
         String message = editText.getText().toString();
         intent.putExtra(EXTRA_MESSAGE, message);
-        if (imagePath != null) {
+
+        if (picType == PicType.FromCamera) {
             intent.putExtra(IMAGE_PATH, imagePath);  //include path to stored bmp
+        } else if(picType == PicType.FromFile){
+            intent.putExtra(IMAGE_PATH, selectedImagePath);
         }
+
         //add settings to intent
         intent.putExtra(GREYSCALE, greyScale);
         intent.putExtra(BLACK_FILTER, blackFilterValue);
@@ -228,11 +272,11 @@ public class MainFragment extends Fragment {
         this.blueGammaValue = blueGammaValue;
     }
 
-    public int getFont(){
+    public int getFont() {
         return font;
     }
 
-    public void setFont(int font){
+    public void setFont(int font) {
         this.font = font;
     }
 }

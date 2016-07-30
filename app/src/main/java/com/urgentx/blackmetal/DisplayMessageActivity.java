@@ -122,7 +122,7 @@ public class DisplayMessageActivity extends AppCompatActivity {
                 //imageView.setColorFilter(filter);           //apply greyscale filter to imageView
 
                 applyGreyscale();
-                applyContrastFilter(30);
+                applyContrastFilter(5);
             }
 
             applyBlackFilter(blackFilterCeiling); //distort bitmap
