@@ -4,19 +4,16 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.graphics.Color;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Environment;
-import android.os.ParcelFileDescriptor;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.Fragment;
-import android.os.Bundle;
+import android.support.v4.content.FileProvider;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -26,8 +23,9 @@ import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import java.io.File;
-import java.io.FileDescriptor;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 /**
  * Main app logic goes on here. This fragment displays an EditText with app description/instructions,
@@ -59,7 +57,6 @@ public class MainFragment extends Fragment {
     public final static String GREEN_GAMMA = "com.urgentx.blackmetal.GREEN";
     public final static String BLUE_GAMMA = "com.urgentx.blackmetal.BLUE";
     public final static String FONT = "com.urgentx.blackmetal.FONT";
-    public final static int PICK_IMAGE = 12;
 
     public enum PicType {        //keep track of camera or from-file mode for src pic
         FromFile, FromCamera
@@ -89,7 +86,7 @@ public class MainFragment extends Fragment {
                 picType = PicType.FromCamera; //set fromcamera mode
                 Snackbar.make(view, "Snap a pic!", Snackbar.LENGTH_SHORT)
                         .setAction("Action", null).show();
-                takePhoto();
+                dispatchTakePictureIntent();
             }
         });
 
@@ -131,11 +128,27 @@ public class MainFragment extends Fragment {
     private Uri imageUri = null;    //Uri for snapshot image
     private Uri selectedUri = null; //Uri for gallery-selected image
 
-    public void takePhoto() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {    //check for Android M.
-            requestPermissions(new String[]{Manifest.permission.CAMERA}, CAMERA_REQUEST);    //need to request permission at runtime
+    private void dispatchTakePictureIntent() {
+        Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+        // Ensure that there's a camera activity to handle the intent
+        if (takePictureIntent.resolveActivity(getActivity().getPackageManager()) != null) {
+            // Create the File where the photo should go
+            File photoFile = null;
+            try {
+                photoFile = createImageFile();
+            } catch (IOException ex) {
+                // Error occurred while creating the File
+
+            }
+            // Continue only if the File was successfully created
+            if (photoFile != null) {
+                Uri photoURI = FileProvider.getUriForFile(getActivity(),
+                        "com.urgentx.blackmetal.fileprovider",
+                        photoFile);
+                takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
+                startActivityForResult(takePictureIntent, TAKE_PICTURE);
+            }
         }
-        takePhotoWithPermission();
     }
 
     public void takePhotoWithPermission() {
@@ -151,14 +164,11 @@ public class MainFragment extends Fragment {
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-
-
             if (requestCode == CAMERA_REQUEST) {
                 if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
                     // Now user should be able to use camera
                     takePhotoWithPermission();
                 }
-
         }
     }
 
@@ -168,22 +178,10 @@ public class MainFragment extends Fragment {
         super.onActivityResult(requestCode, resultCode, data); //overhead method, always called
         switch (requestCode) {
             case TAKE_PICTURE:
-                if(picType == PicType.FromCamera) {
-                    //check for match with our request code
-                    if (resultCode == Activity.RESULT_OK) {        //pic successful
-                        Uri selectedImage = imageUri;              //load our URI
-                        getActivity().getContentResolver().notifyChange(selectedImage, null);     //notify ContentResolver of new image @ URI
-                        Toast.makeText(getContext(), "File saved @ " + selectedImage.toString(),
-                                Toast.LENGTH_LONG).show();
-                        imagePath = selectedImage.toString();      //set our imagePath to our URI
-                    }
-                }
-                else if(picType == PicType.FromFile){
-
+                if(picType == PicType.FromFile){
                         if (resultCode == Activity.RESULT_OK) {
                             if (data.getData() != null) {
                                 selectedUri = data.getData();
-
                                 Toast.makeText(getContext(), "File loaded from " + selectedUri.toString(),
                                         Toast.LENGTH_LONG).show();
                                 selectedImagePath = selectedUri.toString();
@@ -195,7 +193,6 @@ public class MainFragment extends Fragment {
 
     //Called on click of Send button
     public void sendMessage() {
-
         Snackbar.make(getView().getRootView(), "CVLT!", Snackbar.LENGTH_LONG)
                 .setAction("Action", null).show();
 
@@ -219,6 +216,22 @@ public class MainFragment extends Fragment {
         intent.putExtra(BLUE_GAMMA, blueGammaValue);
         intent.putExtra(FONT, font);
         startActivity(intent);
+    }
+
+    private File createImageFile() throws IOException {
+        // Create an image file name
+        String timeStamp = new SimpleDateFormat("yyyyMMdd_HHmmss").format(new Date());
+        String imageFileName = "JPEG_" + timeStamp + "_";
+        File storageDir = getActivity().getExternalFilesDir(Environment.DIRECTORY_PICTURES);
+        File image = File.createTempFile(
+                imageFileName,  /* prefix */
+                ".jpg",         /* suffix */
+                storageDir      /* directory */
+        );
+
+        // Save a file: path for use with ACTION_VIEW intents
+        imagePath = image.getAbsolutePath();
+        return image;
     }
 
     //getters/setters

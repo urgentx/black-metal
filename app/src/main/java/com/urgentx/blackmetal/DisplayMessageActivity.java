@@ -3,6 +3,7 @@ package com.urgentx.blackmetal;
 import android.content.ContentResolver;
 import android.content.Intent;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.ColorMatrix;
@@ -28,6 +29,7 @@ import com.facebook.share.model.SharePhotoContent;
 import com.facebook.share.widget.ShareDialog;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.util.Calendar;
 import java.util.Random;
@@ -86,9 +88,11 @@ public class DisplayMessageActivity extends AppCompatActivity {
 
         if (imagePath != null) {
             try {
-                ContentResolver cr = getContentResolver();  //user ContentResolver to access image
-                rawImage = android.provider.MediaStore.Images.Media
-                        .getBitmap(cr, Uri.parse(imagePath));  //decode into bitmap
+                File f= new File(imagePath);
+                BitmapFactory.Options options = new BitmapFactory.Options();
+                options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+
+                rawImage = BitmapFactory.decodeStream(new FileInputStream(f), null, options).copy(Bitmap.Config.ARGB_8888, true);
             } catch (Exception e) {
                 Toast.makeText(this, "Failed to load", Toast.LENGTH_SHORT)
                         .show();
