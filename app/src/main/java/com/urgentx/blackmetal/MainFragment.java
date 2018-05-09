@@ -4,6 +4,8 @@ import android.Manifest;
 import android.app.Activity;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -19,11 +21,14 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
@@ -77,9 +82,8 @@ public class MainFragment extends Fragment {
     public void onActivityCreated(Bundle savedInstanceState) {
         super.onActivityCreated(savedInstanceState);
 
-        RelativeLayout relativeLayout = (RelativeLayout) getActivity().findViewById(R.id.mainfraglayout); //in case we want to alter layout
 
-        FloatingActionButton fab = (FloatingActionButton) getView().findViewById(R.id.fragfab);
+        FloatingActionButton fab = getView().findViewById(R.id.fragfab);
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -99,8 +103,8 @@ public class MainFragment extends Fragment {
                 picType = PicType.FromFile; //set fromfile mode
                 Intent intent = new Intent();
                 intent.setType("image/*");
-                intent.setAction(Intent.ACTION_GET_CONTENT);
-                startActivityForResult(Intent.createChooser(intent, "Select Picture"), TAKE_PICTURE);
+                intent.setAction(Intent.ACTION_PICK);
+                startActivityForResult(intent, EXT_STORAGE_REQUEST);
             }
         });
 
@@ -122,7 +126,6 @@ public class MainFragment extends Fragment {
     }
 
     //create new intent and request that it dumps photo in our file
-    private static final int TAKE_PICTURE = 1;  //request code
     private static final int CAMERA_REQUEST = 1;  //request code
     private static final int EXT_STORAGE_REQUEST = 2; //request code
     private Uri imageUri = null;    //Uri for snapshot image
@@ -145,8 +148,9 @@ public class MainFragment extends Fragment {
                 Uri photoURI = FileProvider.getUriForFile(getActivity(),
                         "com.urgentx.blackmetal.fileprovider",
                         photoFile);
+                imageUri = photoURI;
                 takePictureIntent.putExtra(MediaStore.EXTRA_OUTPUT, photoURI);
-                startActivityForResult(takePictureIntent, TAKE_PICTURE);
+                startActivityForResult(takePictureIntent, CAMERA_REQUEST);
             }
         }
     }
@@ -158,17 +162,17 @@ public class MainFragment extends Fragment {
         intent.putExtra(MediaStore.EXTRA_OUTPUT,        //request extra output
                 Uri.fromFile(photo));                   //..to our URI
         imageUri = Uri.fromFile(photo);                 //save our URI for accessing image later
-        startActivityForResult(intent, TAKE_PICTURE);   //start activity with request identifier so we can catch the result
+        startActivityForResult(intent, CAMERA_REQUEST);   //start activity with request identifier so we can catch the result
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-            if (requestCode == CAMERA_REQUEST) {
-                if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    // Now user should be able to use camera
-                    takePhotoWithPermission();
-                }
+        if (requestCode == CAMERA_REQUEST) {
+            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                // Now user should be able to use camera
+                takePhotoWithPermission();
+            }
         }
     }
 
@@ -177,17 +181,33 @@ public class MainFragment extends Fragment {
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data); //overhead method, always called
         switch (requestCode) {
-            case TAKE_PICTURE:
-                if(picType == PicType.FromFile){
-                        if (resultCode == Activity.RESULT_OK) {
-                            if (data.getData() != null) {
-                                selectedUri = data.getData();
-                                Toast.makeText(getContext(), "File loaded from " + selectedUri.toString(),
-                                        Toast.LENGTH_LONG).show();
-                                selectedImagePath = selectedUri.toString();
-                            }
+            case EXT_STORAGE_REQUEST:
+                if (picType == PicType.FromFile) {
+                    if (resultCode == Activity.RESULT_OK) {
+                        if (data.getData() != null) {
+                            selectedUri = data.getData();
+                            loadImagePreview(selectedUri);
+                            Toast.makeText(getContext(), "File loaded from " + selectedUri.toString(),
+                                    Toast.LENGTH_LONG).show();
+                            selectedImagePath = selectedUri.toString();
                         }
+                    }
                 }
+                break;
+            case CAMERA_REQUEST:
+                if (resultCode == Activity.RESULT_OK) {
+                    loadImagePreview(imageUri);
+                }
+        }
+    }
+
+    private void loadImagePreview(Uri uri) {
+        try {
+            final InputStream imageStream = getActivity().getContentResolver().openInputStream(uri);
+            Bitmap rawImage = BitmapFactory.decodeStream(imageStream).copy(Bitmap.Config.ARGB_8888, true);
+            ((ImageView) getActivity().findViewById(R.id.preview_pic)).setImageBitmap(rawImage);
+        } catch (Exception e) {
+            Toast.makeText(getActivity(), "Failed to load", Toast.LENGTH_SHORT).show();
         }
     }
 
@@ -202,9 +222,9 @@ public class MainFragment extends Fragment {
         intent.putExtra(EXTRA_MESSAGE, message);
 
         if (picType == PicType.FromCamera) {
-            intent.putExtra(IMAGE_PATH, imagePath);  //include path to stored bmp
-        } else if(picType == PicType.FromFile){
-            intent.putExtra(IMAGE_PATH, selectedImagePath);
+            intent.putExtra(IMAGE_PATH, imageUri);  //include path to stored bmp
+        } else if (picType == PicType.FromFile) {
+            intent.putExtra(IMAGE_PATH, selectedUri);
         }
 
         //add settings to intent

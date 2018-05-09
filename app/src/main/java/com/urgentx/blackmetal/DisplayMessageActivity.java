@@ -12,6 +12,7 @@ import android.graphics.Paint;
 import android.graphics.Path;
 import android.graphics.RectF;
 import android.graphics.Typeface;
+import android.media.MediaScannerConnection;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
@@ -31,6 +32,7 @@ import com.facebook.share.widget.ShareDialog;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
+import java.io.InputStream;
 import java.util.Calendar;
 import java.util.Random;
 
@@ -43,7 +45,7 @@ public class DisplayMessageActivity extends AppCompatActivity {
 
     Bitmap rawImage = null;
     String bandName = null;
-    String imagePath = null;
+    Uri imageUri = null;
     ShareDialog shareDialog;
 
     //settings variables
@@ -65,7 +67,7 @@ public class DisplayMessageActivity extends AppCompatActivity {
         toolbar.setNavigationOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if( Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN){   //handle back button
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {   //handle back button
                     onBackPressed();    //call back button behaviour
                 }
             }
@@ -75,7 +77,7 @@ public class DisplayMessageActivity extends AppCompatActivity {
                 .setAction("Action", null).show();
 
         //retrieve image from external memory and set it to display in an ImageView
-        imagePath = getIntent().getStringExtra(MyActivity.IMAGE_PATH); // retrieve path from intent
+        imageUri = getIntent().getParcelableExtra(MyActivity.IMAGE_PATH); // retrieve path from intent
 
         //get settings from MainFragment in MainActivity
         greyScale = getIntent().getExtras().getBoolean(MyActivity.GREYSCALE);
@@ -86,16 +88,14 @@ public class DisplayMessageActivity extends AppCompatActivity {
         blueGammaValue = (double) getIntent().getExtras().getInt(MyActivity.BLUE_GAMMA);     //cast slider int values to double
         font = getIntent().getExtras().getInt(MyActivity.FONT);
 
-        if (imagePath != null) {
+        if (imageUri != null) {
             try {
-                File f= new File(imagePath);
-                BitmapFactory.Options options = new BitmapFactory.Options();
-                options.inPreferredConfig = Bitmap.Config.ARGB_8888;
-
-                rawImage = BitmapFactory.decodeStream(new FileInputStream(f), null, options).copy(Bitmap.Config.ARGB_8888, true);
+                final InputStream imageStream = getContentResolver().openInputStream(imageUri);
+                rawImage = BitmapFactory.decodeStream(imageStream).copy(Bitmap.Config.ARGB_8888, true);
             } catch (Exception e) {
                 Toast.makeText(this, "Failed to load", Toast.LENGTH_SHORT)
                         .show();
+                return;
             }
 
             if (getWindowManager().getDefaultDisplay().getWidth() < rawImage.getWidth()) {   //check if bitmap too large for ImageView,
@@ -132,7 +132,6 @@ public class DisplayMessageActivity extends AppCompatActivity {
             applyBlackFilter(blackFilterCeiling); //distort bitmap
 
 
-
             if (saturationLevel > 0) { //don't saturate at all when slider progress == 0
                 applySaturationFilter(saturationLevel * 2); //apply saturation
             }
@@ -157,12 +156,12 @@ public class DisplayMessageActivity extends AppCompatActivity {
                 .addPhoto(photo)
                 .build();
 
-        shareDialog.show(content);  //show user share Dialog
+        shareDialog.show(content, ShareDialog.Mode.NATIVE);  //show user share Dialog
     }
 
     // Called on click of Save to Gallery button
     public void saveToGallery(View view) {
-        if(rawImage != null) {
+        if (rawImage != null) {
             savePhoto(rawImage);
             Toast.makeText(getApplicationContext(), "Saved to gallery", Toast.LENGTH_SHORT).show();
         } else {
@@ -170,42 +169,36 @@ public class DisplayMessageActivity extends AppCompatActivity {
         }
     }
 
-    private String savePhoto(Bitmap bmp) {
-        File path = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES); //this is the default location inside SD Card - Pictures folder
-        FileOutputStream out = null;
-        Calendar c = Calendar.getInstance(); //get Calendar to set date/time on bitmap
+    private void savePhoto(Bitmap finalBitmap) {
 
-        String date = fromInt(c.get(Calendar.MONTH)) //build a date stamp
-                + fromInt(c.get(Calendar.DAY_OF_MONTH))
-                + fromInt(c.get(Calendar.YEAR))
-                + fromInt(c.get(Calendar.HOUR_OF_DAY))
-                + fromInt(c.get(Calendar.MINUTE))
-                + fromInt(c.get(Calendar.SECOND));
-        File imageFileName = new File(path, "blackmetal_" + date.toString() + ".jpg"); //imageFileFolder
+        String root = Environment.getExternalStoragePublicDirectory(
+                Environment.DIRECTORY_PICTURES).toString();
+        File myDir = new File(root + "/Black Metal");
+        myDir.mkdirs();
+        Random generator = new Random();
+
+        int n = 10000;
+        n = generator.nextInt(n);
+        String fname = "black_metal_img" + n + ".jpg";
+        File file = new File(myDir, fname);
+        if (file.exists()) file.delete();
         try {
-            out = new FileOutputStream(imageFileName);
-            bmp.compress(Bitmap.CompressFormat.JPEG, 100, out); //insert our bitmap
+            FileOutputStream out = new FileOutputStream(file);
+            finalBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out);
             out.flush();
             out.close();
-            scanPhoto(imageFileName.toString());
-            out = null;
+
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return imageFileName.toString();
-    }
-
-    private String fromInt(int val) {
-        return String.valueOf(val);
-    }
-
-    //invoke system media scanner to add bitmap to system media gallery
-    private void scanPhoto(String imageFileName) {
-        Intent mediaScanIntent = new Intent(Intent.ACTION_MEDIA_SCANNER_SCAN_FILE); //build intent with Uri
-        File f = new File(imageFileName);
-        Uri contentUri = Uri.fromFile(f);
-        mediaScanIntent.setData(contentUri);
-        getApplicationContext().sendBroadcast(mediaScanIntent); //..and send it off
+        // Tell the media scanner about the new file so that it is
+        // immediately available to the user.
+        MediaScannerConnection.scanFile(this, new String[]{file.toString()}, null,
+                new MediaScannerConnection.OnScanCompletedListener() {
+                    public void onScanCompleted(String path, Uri uri) {
+                        int x = 0;
+                    }
+                });
     }
 
     public void applyGreyscale() {
@@ -390,7 +383,7 @@ public class DisplayMessageActivity extends AppCompatActivity {
         Path mArc;  //path to put text on
         Paint mPaintText;
         Typeface tf;
-        if(font == 0){
+        if (font == 0) {
             tf = Typeface.createFromAsset(getAssets(), "fonts/blackmetal.ttf"); //load font
         } else {
             tf = Typeface.createFromAsset(getAssets(), "fonts/pureevil.ttf"); //load font
