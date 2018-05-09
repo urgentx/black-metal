@@ -14,7 +14,9 @@ import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
+import android.support.v4.content.ContextCompat;
 import android.support.v4.content.FileProvider;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -22,8 +24,6 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
-import android.widget.LinearLayout;
-import android.widget.RelativeLayout;
 import android.widget.Toast;
 
 import java.io.File;
@@ -90,7 +90,14 @@ public class MainFragment extends Fragment {
                 picType = PicType.FromCamera; //set fromcamera mode
                 Snackbar.make(view, "Snap a pic!", Snackbar.LENGTH_SHORT)
                         .setAction("Action", null).show();
-                dispatchTakePictureIntent();
+
+                if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.CAMERA)
+                        != PackageManager.PERMISSION_GRANTED) {
+                    askForPermission();
+                } else {
+                    dispatchTakePictureIntent();
+                }
+
             }
         });
 
@@ -99,12 +106,12 @@ public class MainFragment extends Fragment {
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, EXT_STORAGE_REQUEST);
-                picType = PicType.FromFile; //set fromfile mode
-                Intent intent = new Intent();
-                intent.setType("image/*");
-                intent.setAction(Intent.ACTION_PICK);
-                startActivityForResult(intent, EXT_STORAGE_REQUEST);
+                if (ContextCompat.checkSelfPermission(getActivity(), Manifest.permission.CAMERA)
+                        != PackageManager.PERMISSION_GRANTED) {
+                    requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, STORAGE_PERMISSION);
+                } else {
+                    dispatchSelectPictureIntent();
+                }
             }
         });
 
@@ -128,8 +135,15 @@ public class MainFragment extends Fragment {
     //create new intent and request that it dumps photo in our file
     private static final int CAMERA_REQUEST = 1;  //request code
     private static final int EXT_STORAGE_REQUEST = 2; //request code
+    private static final int CAMERA_PERMISSION = 3;
+    private static final int STORAGE_PERMISSION = 4;
     private Uri imageUri = null;    //Uri for snapshot image
     private Uri selectedUri = null; //Uri for gallery-selected image
+
+    private void askForPermission() {
+        requestPermissions(new String[]{Manifest.permission.CAMERA},
+                CAMERA_PERMISSION);
+    }
 
     private void dispatchTakePictureIntent() {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
@@ -155,23 +169,30 @@ public class MainFragment extends Fragment {
         }
     }
 
-    public void takePhotoWithPermission() {
-        requestPermissions(new String[]{Manifest.permission.READ_EXTERNAL_STORAGE}, EXT_STORAGE_REQUEST);
-        Intent intent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE); //make camera intent
-        File photo = new File(Environment.getExternalStorageDirectory(), "Black_metal_pic.jpg"); //create a file in external storage
-        intent.putExtra(MediaStore.EXTRA_OUTPUT,        //request extra output
-                Uri.fromFile(photo));                   //..to our URI
-        imageUri = Uri.fromFile(photo);                 //save our URI for accessing image later
-        startActivityForResult(intent, CAMERA_REQUEST);   //start activity with request identifier so we can catch the result
+    private void dispatchSelectPictureIntent() {
+        picType = PicType.FromFile; //set fromfile mode
+        Intent intent = new Intent();
+        intent.setType("image/*");
+        intent.setAction(Intent.ACTION_PICK);
+        startActivityForResult(intent, EXT_STORAGE_REQUEST);
     }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == CAMERA_REQUEST) {
-            if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // Now user should be able to use camera
-                takePhotoWithPermission();
+        if (requestCode == CAMERA_PERMISSION) {
+            if (grantResults.length > 0
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                dispatchTakePictureIntent();
+            } else {
+                Toast.makeText(getActivity(), "This app needs permission to use your camera to take photos.", Toast.LENGTH_LONG).show();
+            }
+        } else if (requestCode == STORAGE_PERMISSION) {
+            if (grantResults.length > 0
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                dispatchSelectPictureIntent();
+            } else {
+                Toast.makeText(getActivity(), "This app needs permission to access your storage.", Toast.LENGTH_LONG).show();
             }
         }
     }
