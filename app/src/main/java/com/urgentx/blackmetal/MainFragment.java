@@ -7,14 +7,12 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
 import android.provider.MediaStore;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
-import android.support.v4.app.ActivityCompat;
 import android.support.v4.app.Fragment;
 import android.support.v4.content.ContextCompat;
 import android.support.v4.content.FileProvider;
@@ -67,15 +65,12 @@ public class MainFragment extends Fragment {
         FromFile, FromCamera
     }
 
-    PicType picType; //declare mode tracker enum
-
     String imagePath = null; //path to user-taken image
     String selectedImagePath = null; //path to user-selected image
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) { //inflate our layout container
         return inflater.inflate(R.layout.fragment_main_layout, container, false);
-
     }
 
     @Override
@@ -87,7 +82,6 @@ public class MainFragment extends Fragment {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                picType = PicType.FromCamera; //set fromcamera mode
                 Snackbar.make(view, "Snap a pic!", Snackbar.LENGTH_SHORT)
                         .setAction("Action", null).show();
 
@@ -138,7 +132,6 @@ public class MainFragment extends Fragment {
     private static final int CAMERA_PERMISSION = 3;
     private static final int STORAGE_PERMISSION = 4;
     private Uri imageUri = null;    //Uri for snapshot image
-    private Uri selectedUri = null; //Uri for gallery-selected image
 
     private void askForPermission() {
         requestPermissions(new String[]{Manifest.permission.CAMERA},
@@ -170,7 +163,6 @@ public class MainFragment extends Fragment {
     }
 
     private void dispatchSelectPictureIntent() {
-        picType = PicType.FromFile; //set fromfile mode
         Intent intent = new Intent();
         intent.setType("image/*");
         intent.setAction(Intent.ACTION_PICK);
@@ -203,22 +195,21 @@ public class MainFragment extends Fragment {
         super.onActivityResult(requestCode, resultCode, data); //overhead method, always called
         switch (requestCode) {
             case EXT_STORAGE_REQUEST:
-                if (picType == PicType.FromFile) {
-                    if (resultCode == Activity.RESULT_OK) {
-                        if (data.getData() != null) {
-                            selectedUri = data.getData();
-                            loadImagePreview(selectedUri);
-                            Toast.makeText(getContext(), "File loaded from " + selectedUri.toString(),
-                                    Toast.LENGTH_LONG).show();
-                            selectedImagePath = selectedUri.toString();
-                        }
+                if (resultCode == Activity.RESULT_OK) {
+                    if (data.getData() != null) {
+                        imageUri = data.getData();
+                        loadImagePreview(imageUri);
+                        selectedImagePath = imageUri.toString();
                     }
                 }
                 break;
             case CAMERA_REQUEST:
                 if (resultCode == Activity.RESULT_OK) {
                     loadImagePreview(imageUri);
+                } else {
+                    imageUri = null; //Forget about image storage location
                 }
+                break;
         }
     }
 
@@ -234,29 +225,23 @@ public class MainFragment extends Fragment {
 
     //Called on click of Send button
     public void sendMessage() {
-        Snackbar.make(getView().getRootView(), "CVLT!", Snackbar.LENGTH_LONG)
-                .setAction("Action", null).show();
-
-        Intent intent = new Intent(getActivity(), DisplayMessageActivity.class);
-
-        String message = editText.getText().toString();
-        intent.putExtra(EXTRA_MESSAGE, message);
-
-        if (picType == PicType.FromCamera) {
+        if (imageUri != null) {
+            Intent intent = new Intent(getActivity(), DisplayMessageActivity.class);
+            String message = editText.getText().toString();
+            intent.putExtra(EXTRA_MESSAGE, message);
             intent.putExtra(IMAGE_PATH, imageUri);  //include path to stored bmp
-        } else if (picType == PicType.FromFile) {
-            intent.putExtra(IMAGE_PATH, selectedUri);
+            //add settings to intent
+            intent.putExtra(GREYSCALE, greyScale);
+            intent.putExtra(BLACK_FILTER, blackFilterValue);
+            intent.putExtra(SATURATION_FILTER, satFilterValue);
+            intent.putExtra(RED_GAMMA, redGammaValue);
+            intent.putExtra(GREEN_GAMMA, greenGammaValue);
+            intent.putExtra(BLUE_GAMMA, blueGammaValue);
+            intent.putExtra(FONT, font);
+            startActivity(intent);
+        } else {
+            Toast.makeText(getActivity(), "Please provide a photo.", Toast.LENGTH_LONG).show();
         }
-
-        //add settings to intent
-        intent.putExtra(GREYSCALE, greyScale);
-        intent.putExtra(BLACK_FILTER, blackFilterValue);
-        intent.putExtra(SATURATION_FILTER, satFilterValue);
-        intent.putExtra(RED_GAMMA, redGammaValue);
-        intent.putExtra(GREEN_GAMMA, greenGammaValue);
-        intent.putExtra(BLUE_GAMMA, blueGammaValue);
-        intent.putExtra(FONT, font);
-        startActivity(intent);
     }
 
     private File createImageFile() throws IOException {

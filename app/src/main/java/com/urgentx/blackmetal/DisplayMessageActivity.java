@@ -1,7 +1,8 @@
 package com.urgentx.blackmetal;
 
-import android.content.ContentResolver;
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -17,7 +18,9 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
+import android.support.annotation.NonNull;
 import android.support.design.widget.Snackbar;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
@@ -30,11 +33,17 @@ import com.facebook.share.model.SharePhotoContent;
 import com.facebook.share.widget.ShareDialog;
 
 import java.io.File;
-import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.InputStream;
-import java.util.Calendar;
 import java.util.Random;
+
+import io.reactivex.Observable;
+import io.reactivex.android.schedulers.AndroidSchedulers;
+import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.schedulers.Schedulers;
+
+import static android.view.View.GONE;
 
 /**
  * Does all image processing using settings received in Intent from MainFragment in MainActivity.
@@ -48,10 +57,14 @@ public class DisplayMessageActivity extends AppCompatActivity {
     Uri imageUri = null;
     ShareDialog shareDialog;
 
+    public static final int EXT_STORAGE_PERMISSION = 5;
+
     //settings variables
     private boolean greyScale;
     private int blackFilterCeiling, saturationLevel, font;
     private double redGammaValue, greenGammaValue, blueGammaValue;
+
+    private CompositeDisposable compositeDisposable = new CompositeDisposable();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,7 +86,19 @@ public class DisplayMessageActivity extends AppCompatActivity {
             }
         });
 
-        Snackbar.make(findViewById(R.id.activity_display_layout), "Nice!", Snackbar.LENGTH_LONG)
+        findViewById(R.id.save_gallery_btn).setOnClickListener(view -> {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE)
+                    != PackageManager.PERMISSION_GRANTED) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    requestPermissions(new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE},
+                            EXT_STORAGE_PERMISSION);
+                }
+            } else {
+                saveToGallery();
+            }
+        });
+
+        Snackbar.make(findViewById(R.id.activity_display_layout), "Nice! Consulting our spellbooks to make your picture as bleak as possible.", Snackbar.LENGTH_LONG)
                 .setAction("Action", null).show();
 
         //retrieve image from external memory and set it to display in an ImageView
@@ -88,16 +113,42 @@ public class DisplayMessageActivity extends AppCompatActivity {
         blueGammaValue = (double) getIntent().getExtras().getInt(MyActivity.BLUE_GAMMA);     //cast slider int values to double
         font = getIntent().getExtras().getInt(MyActivity.FONT);
 
+        compositeDisposable.add(Observable.fromCallable(() -> {
+            processImage();
+            return false;
+        }).subscribeOn(Schedulers.io())
+                .observeOn(AndroidSchedulers.mainThread())
+                .subscribe((result) -> {
+                    ImageView imageView = findViewById(R.id.imgViewDisplay);   //find the imageView in our layout
+                    imageView.setImageBitmap(rawImage);     //give ImageView our bitmap
+                    findViewById(R.id.progress_layout).setVisibility(GONE);
+                }, (error) -> {
+                    onError();
+                    Toast.makeText(DisplayMessageActivity.this, "Can't process your image.", Toast.LENGTH_LONG).show();
+                }));
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == EXT_STORAGE_PERMISSION) {
+            if (grantResults.length > 0
+                    && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                saveToGallery();
+            } else {
+                Toast.makeText(this, "This app needs permission to access your storage to save photos.", Toast.LENGTH_LONG).show();
+            }
+        }
+    }
+
+    private void onError() {
+        findViewById(R.id.progress_bar).setVisibility(GONE);
+    }
+
+    private void processImage() throws FileNotFoundException{
         if (imageUri != null) {
-            try {
                 final InputStream imageStream = getContentResolver().openInputStream(imageUri);
                 rawImage = BitmapFactory.decodeStream(imageStream).copy(Bitmap.Config.ARGB_8888, true);
-            } catch (Exception e) {
-                Toast.makeText(this, "Failed to load", Toast.LENGTH_SHORT)
-                        .show();
-                return;
-            }
-
             if (getWindowManager().getDefaultDisplay().getWidth() < rawImage.getWidth()) {   //check if bitmap too large for ImageView,
                 int height = (rawImage.getHeight() * 512 / rawImage.getWidth());            //if so, shrink it.
                 rawImage = Bitmap.createScaledBitmap(rawImage, 512, height, true);
@@ -116,41 +167,24 @@ public class DisplayMessageActivity extends AppCompatActivity {
 
             applyGamma(redGammaValue, greenGammaValue, blueGammaValue);
 
-            ImageView imageView = (ImageView) findViewById(R.id.imgViewDisplay);   //find the imageView in our layout
             if (greyScale) {
-                //old method using ImageView
-                //ColorMatrix matrix = new ColorMatrix();                             //set ColorMatrix to greyscale
-                //matrix.setSaturation(0);
-                //ColorMatrixColorFilter filter = new ColorMatrixColorFilter(matrix);
-
-                //imageView.setColorFilter(filter);           //apply greyscale filter to imageView
-
                 applyGreyscale();
                 applyContrastFilter(5);
             }
 
             applyBlackFilter(blackFilterCeiling); //distort bitmap
 
-
             if (saturationLevel > 0) { //don't saturate at all when slider progress == 0
                 applySaturationFilter(saturationLevel * 2); //apply saturation
             }
-
             drawText(); //add text to bitmap
-
-            imageView.setImageBitmap(rawImage);     //give ImageView our bitmap
-
-            // galleryAddPic();
-
-            //MediaStore.Images.Media.insertImage(getContentResolver(), rawImage, "Black Metal" , "Generated using Black Metal app"); //add picture to gallery so user can access it with system media provider
         }
     }
 
     // Called on click of Share button
     public void shareContent(View view) {
-        Bitmap image = rawImage;
         SharePhoto photo = new SharePhoto.Builder() //convert image to SharePhoto
-                .setBitmap(image)
+                .setBitmap(rawImage)
                 .build();
         SharePhotoContent content = new SharePhotoContent.Builder() //build PhotoContent from photo
                 .addPhoto(photo)
@@ -160,45 +194,14 @@ public class DisplayMessageActivity extends AppCompatActivity {
     }
 
     // Called on click of Save to Gallery button
-    public void saveToGallery(View view) {
+    public void saveToGallery() {
         if (rawImage != null) {
-            savePhoto(rawImage);
+            String random = String.valueOf(Math.random() * 1000);
+            CapturePhotoUtils.insertImage(getContentResolver(), rawImage, "Black Metal Image " + random, "");
             Toast.makeText(getApplicationContext(), "Saved to gallery", Toast.LENGTH_SHORT).show();
         } else {
             Toast.makeText(getApplicationContext(), "No picture taken", Toast.LENGTH_SHORT).show();
         }
-    }
-
-    private void savePhoto(Bitmap finalBitmap) {
-
-        String root = Environment.getExternalStoragePublicDirectory(
-                Environment.DIRECTORY_PICTURES).toString();
-        File myDir = new File(root + "/Black Metal");
-        myDir.mkdirs();
-        Random generator = new Random();
-
-        int n = 10000;
-        n = generator.nextInt(n);
-        String fname = "black_metal_img" + n + ".jpg";
-        File file = new File(myDir, fname);
-        if (file.exists()) file.delete();
-        try {
-            FileOutputStream out = new FileOutputStream(file);
-            finalBitmap.compress(Bitmap.CompressFormat.JPEG, 90, out);
-            out.flush();
-            out.close();
-
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        // Tell the media scanner about the new file so that it is
-        // immediately available to the user.
-        MediaScannerConnection.scanFile(this, new String[]{file.toString()}, null,
-                new MediaScannerConnection.OnScanCompletedListener() {
-                    public void onScanCompleted(String path, Uri uri) {
-                        int x = 0;
-                    }
-                });
     }
 
     public void applyGreyscale() {
@@ -401,5 +404,11 @@ public class DisplayMessageActivity extends AppCompatActivity {
         RectF oval = new RectF(80, 100, 400, 300); //set curve bounds
         mArc.addArc(oval, -180, 200);
         canvas.drawTextOnPath(bandName, mArc, 5, 20, mPaintText);
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        compositeDisposable.dispose();
     }
 }
