@@ -11,6 +11,7 @@ import android.graphics.ColorMatrix;
 import android.graphics.ColorMatrixColorFilter;
 import android.graphics.Paint;
 import android.graphics.Path;
+import android.graphics.Point;
 import android.graphics.RectF;
 import android.graphics.Typeface;
 import android.media.MediaScannerConnection;
@@ -41,6 +42,7 @@ import java.util.Random;
 import io.reactivex.Observable;
 import io.reactivex.android.schedulers.AndroidSchedulers;
 import io.reactivex.disposables.CompositeDisposable;
+import io.reactivex.exceptions.CompositeException;
 import io.reactivex.schedulers.Schedulers;
 
 import static android.view.View.GONE;
@@ -74,15 +76,12 @@ public class DisplayMessageActivity extends AppCompatActivity {
         shareDialog = new ShareDialog(this);
 
         setContentView(R.layout.activity_display_message);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar); //set up toolbar
+        Toolbar toolbar = findViewById(R.id.toolbar); //set up toolbar
         toolbar.setTitle("Result");
         toolbar.setNavigationIcon(R.drawable.ic_back);
-        toolbar.setNavigationOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {   //handle back button
-                    onBackPressed();    //call back button behaviour
-                }
+        toolbar.setNavigationOnClickListener(v -> {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {   //handle back button
+                onBackPressed();    //call back button behaviour
             }
         });
 
@@ -123,8 +122,12 @@ public class DisplayMessageActivity extends AppCompatActivity {
                     imageView.setImageBitmap(rawImage);     //give ImageView our bitmap
                     findViewById(R.id.progress_layout).setVisibility(GONE);
                 }, (error) -> {
-                    onError();
-                    Toast.makeText(DisplayMessageActivity.this, "Can't process your image.", Toast.LENGTH_LONG).show();
+                    try { //Trying to access UI/pass Context at a potentially illegal time.
+                        onError();
+                        Toast.makeText(DisplayMessageActivity.this, "Can't process your image.", Toast.LENGTH_LONG).show();
+                    } catch (CompositeException e) {
+                        e.printStackTrace();
+                    }
                 }));
     }
 
@@ -145,11 +148,13 @@ public class DisplayMessageActivity extends AppCompatActivity {
         findViewById(R.id.progress_bar).setVisibility(GONE);
     }
 
-    private void processImage() throws FileNotFoundException{
+    private void processImage() throws FileNotFoundException {
         if (imageUri != null) {
-                final InputStream imageStream = getContentResolver().openInputStream(imageUri);
-                rawImage = BitmapFactory.decodeStream(imageStream).copy(Bitmap.Config.ARGB_8888, true);
-            if (getWindowManager().getDefaultDisplay().getWidth() < rawImage.getWidth()) {   //check if bitmap too large for ImageView,
+            final InputStream imageStream = getContentResolver().openInputStream(imageUri);
+            rawImage = BitmapFactory.decodeStream(imageStream).copy(Bitmap.Config.ARGB_8888, true);
+            Point size = new Point();
+            getWindowManager().getDefaultDisplay().getSize(size);
+            if (size.x < rawImage.getWidth()) {   //check if bitmap too large for ImageView,
                 int height = (rawImage.getHeight() * 512 / rawImage.getWidth());            //if so, shrink it.
                 rawImage = Bitmap.createScaledBitmap(rawImage, 512, height, true);
             }
@@ -243,11 +248,11 @@ public class DisplayMessageActivity extends AppCompatActivity {
 
         //set values for gamma channels
         for (int i = 0; i < MAX_SIZE; ++i) {
-            gammaR[i] = (int) Math.min(MAX_VALUE_INT,
+            gammaR[i] = Math.min(MAX_VALUE_INT,
                     (int) ((MAX_VALUE_DBL * Math.pow(i / MAX_VALUE_DBL, REVERSE / red)) + 0.5));
-            gammaG[i] = (int) Math.min(MAX_VALUE_INT,
+            gammaG[i] = Math.min(MAX_VALUE_INT,
                     (int) ((MAX_VALUE_DBL * Math.pow(i / MAX_VALUE_DBL, REVERSE / green)) + 0.5));
-            gammaB[i] = (int) Math.min(MAX_VALUE_INT,
+            gammaB[i] = Math.min(MAX_VALUE_INT,
                     (int) ((MAX_VALUE_DBL * Math.pow(i / MAX_VALUE_DBL, REVERSE / blue)) + 0.5));
         }
 
@@ -277,7 +282,7 @@ public class DisplayMessageActivity extends AppCompatActivity {
         //get pixel array from source
         rawImage.getPixels(pixels, 0, width, 0, 0, width, height);
 
-        int index = 0;
+        int index;
         //iteration through pixels
         for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
@@ -357,7 +362,7 @@ public class DisplayMessageActivity extends AppCompatActivity {
         //random object
         Random random = new Random();
 
-        int R, G, B, index = 0, thresHold = 0;
+        int R, G, B, index, threshold;
         //iteration through pixels
         for (int y = 0; y < height; ++y) {
             for (int x = 0; x < width; ++x) {
@@ -368,8 +373,8 @@ public class DisplayMessageActivity extends AppCompatActivity {
                 G = Color.green(pixels[index]);
                 B = Color.blue(pixels[index]);
                 // generate threshold
-                thresHold = random.nextInt(2 * blackFilterCeiling + 1);
-                if (R < thresHold && G < thresHold && B < thresHold) {
+                threshold = random.nextInt(2 * blackFilterCeiling + 1);
+                if (R < threshold && G < threshold && B < threshold) {
                     pixels[index] = Color.rgb(0x10, 0x10, 0x10);
                 }
             }
